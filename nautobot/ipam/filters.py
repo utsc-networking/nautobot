@@ -587,13 +587,11 @@ class VLANFilterSet(
 
     def get_for_device(self, queryset, name, value):
         """Return all VLANs available to the specified Device(value)."""
-        devices = Device.objects.select_related("location").filter(**{f"{name}__in": value})
+        devices = Device.objects.select_related("vlan_group").filter(**{f"{name}__in": value})
         if not devices.exists():
             return queryset.none()
-        location_ids = list(devices.values_list("location__id", flat=True))
-        for location in Location.objects.filter(pk__in=location_ids):
-            location_ids.extend([ancestor.id for ancestor in location.ancestors()])
-        return queryset.filter(Q(locations__isnull=True) | Q(locations__in=location_ids))
+        vlan_group_ids = list(devices.values_list("vlan_group__id", flat=True))
+        return queryset.filter(Q(vlan_group__in=vlan_group_ids))
 
 
 class VLANLocationAssignmentFilterSet(NautobotFilterSet):

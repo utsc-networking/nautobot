@@ -606,7 +606,7 @@ class DeviceSerializer(TaggedModelSerializerMixin, NautobotModelSerializer):
     class Meta:
         model = Device
         fields = "__all__"
-        list_display_fields = ["name", "status", "tenant", "location", "rack", "role", "device_type", "primary_ip"]
+        list_display_fields = ["name", "status", "tenant", "location", "vlan_group", "rack", "role", "device_type", "primary_ip"]
         validators = []
         extra_kwargs = {
             "parent_bay": {"required": False, "allow_null": True},
@@ -621,6 +621,7 @@ class DeviceSerializer(TaggedModelSerializerMixin, NautobotModelSerializer):
                         "fields": [
                             "name",
                             "location",
+                            "vlan_group",
                             "rack",
                             "face",
                             "position",
@@ -806,11 +807,10 @@ class InterfaceSerializer(
         else:
             location_ids = []
         for vlan in data.get("tagged_vlans", []):
-            if vlan.locations.exists() and not vlan.locations.filter(pk__in=location_ids).exists():
+            if vlan.vlan_group != device.vlan_group:
                 raise serializers.ValidationError(
                     {
-                        "tagged_vlans": f"VLAN {vlan} must have the same location as the interface's parent device, "
-                        f"or is in one of the parents of the interface's parent device's location, or it must be global."
+                        "tagged_vlans": f"VLAN {vlan} must belong to the same VLAN group as the device ({device.vlan_group})"
                     }
                 )
 

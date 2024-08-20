@@ -390,6 +390,7 @@ class DeviceViewSet(ConfigContextQuerySetMixin, NautobotModelViewSet):
         "platform",
         "rack",
         "location",
+        "vlan_group",
         "parent_bay",
         "primary_ip4",
         "primary_ip6",
