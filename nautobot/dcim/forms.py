@@ -216,26 +216,37 @@ class InterfaceCommonForm(forms.Form):
         # Validate tagged VLANs; must be a global VLAN or in the same location as the
         # parent device/VM or any of that location's parent locations
         elif mode == InterfaceModeChoices.MODE_TAGGED:
-            location = self.cleaned_data[parent_field].location
-            if location:
-                location_ids = location.ancestors(include_self=True).values_list("id", flat=True)
-            else:
-                location_ids = []
-            invalid_vlans = [
-                str(v)
-                for v in tagged_vlans
-                if v.locations.without_tree_fields().exists()
-                and not VLANLocationAssignment.objects.filter(location__in=location_ids, vlan=v).exists()
-            ]
+            if parent_field == "device":
+                vlan_group = self.cleaned_data[parent_field].vlan_group
+                invalid_vlans = [
+                    str(v)
+                    for v in tagged_vlans
+                    if v.vlan_group is not None and v.vlan_group != vlan_group
+                ]
 
-            if invalid_vlans:
-                raise forms.ValidationError(
-                    {
-                        "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must have the same location as the "
-                        "interface's parent device, or is in one of the parents of the interface's parent device's location, "
-                        "or it must be global."
-                    }
-                )
+                if invalid_vlans:
+                    raise forms.ValidationError(
+                        {
+                            "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must belong to the same VLAN Group as "
+                            f"the interface's parent device"
+                        }
+                    )
+            else:
+                valid_location = self.cleaned_data[parent_field].location
+                invalid_vlans = [
+                    str(v)
+                    for v in tagged_vlans
+                    if v.locations.without_tree_fields().exists()
+                    and not VLANLocationAssignment.objects.filter(location=valid_location, vlan=v).exists()
+                ]
+
+                if invalid_vlans:
+                    raise forms.ValidationError(
+                        {
+                            "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must belong to the same location as "
+                            f"the interface's parent device/VM, or they must be global"
+                        }
+                    )
 
 
 class ComponentForm(BootstrapMixin, forms.Form):

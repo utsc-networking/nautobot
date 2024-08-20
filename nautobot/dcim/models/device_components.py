@@ -734,6 +734,7 @@ class Interface(ModularComponentModel, CableTermination, PathEndpoint, BaseInter
             location_ids = []
         if (
             self.untagged_vlan
+            and not hasattr(self.parent, "vlan_group") # Location-based validation is not applicable to Devices, which have vlan_group associations
             and self.untagged_vlan.locations.exists()
             and self.parent
             and not self.untagged_vlan.locations.filter(pk__in=location_ids).exists()
@@ -743,6 +744,19 @@ class Interface(ModularComponentModel, CableTermination, PathEndpoint, BaseInter
                     "untagged_vlan": (
                         f"The untagged VLAN ({self.untagged_vlan}) must have a common location as the interface's parent "
                         f"device, or is in one of the parents of the interface's parent device's location, or it must be global."
+                    )
+                }
+            )
+        
+        if (
+            self.untagged_vlan
+            and hasattr(self.parent, 'vlan_group') # True for Device, False for VM
+            and self.untagged_vlan.vlan_group != self.parent.vlan_group
+        ):
+            raise ValidationError(
+                {
+                    "untagged_vlan": (
+                        f"The untagged VLAN ({self.untagged_vlan}) must belong to the same VLAN Group as the interface's parent device"
                     )
                 }
             )

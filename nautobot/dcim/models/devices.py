@@ -679,11 +679,6 @@ class Device(PrimaryModel, ConfigContextModel):
             if self.rack is not None and self.rack.location not in valid_locations:
                 raise ValidationError({"rack": f'Rack "{self.rack}" does not belong to location "{self.location}" or any of its parents.'})
 
-            if self.vlan_group is not None and self.vlan_group.location not in valid_locations:
-                raise ValidationError(
-                    {"vlan_group": f'VLAN group "{self.vlan_group}" does not belong to location "{self.location}" or any of its parents.'}
-                )
-
             # self.cluster is validated somewhat later, see below
 
             if ContentType.objects.get_for_model(self) not in self.location.location_type.content_types.all():
