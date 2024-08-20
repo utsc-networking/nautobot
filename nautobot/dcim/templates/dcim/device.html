@@ -24,6 +24,14 @@
                                         </td>
                                     </tr>
                                     <tr>
+                                        <td>VLAN Group</td>
+                                        <td>
+                                            {% if object.vlan_group%}
+                                                {{ object.vlan_group|hyperlinked_object }} /
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <td>Rack</td>
                                         <td>
                                             {% if object.rack and object.rack.rack_group %}

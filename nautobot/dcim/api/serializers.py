@@ -606,7 +606,7 @@ class DeviceSerializer(TaggedModelSerializerMixin, NautobotModelSerializer):
     class Meta:
         model = Device
         fields = "__all__"
-        list_display_fields = ["name", "status", "tenant", "location", "rack", "role", "device_type", "primary_ip"]
+        list_display_fields = ["name", "status", "tenant", "location", "vlan_group", "rack", "role", "device_type", "primary_ip"]
         validators = []
         extra_kwargs = {
             "parent_bay": {"required": False, "allow_null": True},
@@ -621,6 +621,7 @@ class DeviceSerializer(TaggedModelSerializerMixin, NautobotModelSerializer):
                         "fields": [
                             "name",
                             "location",
+                            "vlan_group",
                             "rack",
                             "face",
                             "position",

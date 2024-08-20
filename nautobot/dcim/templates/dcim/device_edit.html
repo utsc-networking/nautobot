@@ -43,6 +43,7 @@
         <div class="panel-heading"><strong>Location</strong></div>
         <div class="panel-body">
             {% render_field form.location %}
+            {% render_field form.vlan_group %}
             {% render_field form.rack_group %}
             {% render_field form.rack %}
             {% if obj.device_type.is_child_device and obj.parent_bay %}

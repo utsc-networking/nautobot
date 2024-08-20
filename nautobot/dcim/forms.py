@@ -65,7 +65,7 @@ from nautobot.extras.models import (
     Team,
 )
 from nautobot.ipam.constants import BGP_ASN_MAX, BGP_ASN_MIN
-from nautobot.ipam.models import IPAddress, IPAddressToInterface, VLAN, VLANLocationAssignment, VRF
+from nautobot.ipam.models import IPAddress, IPAddressToInterface, VLAN, VLANGroup, VLANLocationAssignment, VRF
 from nautobot.tenancy.forms import TenancyFilterForm, TenancyForm
 from nautobot.tenancy.models import Tenant, TenantGroup
 from nautobot.virtualization.models import Cluster, ClusterGroup, VirtualMachine
@@ -1894,6 +1894,7 @@ class DeviceForm(LocatableModelFormMixin, NautobotModelForm, TenancyForm, LocalC
             "rack_group": "$rack_group",
         },
     )
+    vlan_group = DynamicModelChoiceField(queryset=VLANGroup.objects.all())
     device_redundancy_group = DynamicModelChoiceField(queryset=DeviceRedundancyGroup.objects.all(), required=False)
     controller_managed_device_group = DynamicModelChoiceField(
         queryset=ControllerManagedDeviceGroup.objects.all(), required=False
@@ -1964,6 +1965,7 @@ class DeviceForm(LocatableModelFormMixin, NautobotModelForm, TenancyForm, LocalC
             "software_image_files",
             "software_version",
             "location",
+            "vlan_group",
             "rack",
             "device_redundancy_group",
             "device_redundancy_group_priority",
@@ -2113,6 +2115,7 @@ class DeviceBulkEditForm(
         required=False,
         query_params={"location": "$location", "rack_group": "$rack_group"},
     )
+    vlan_group = DynamicModelChoiceField(required=False, queryset=VLANGroup.objects.all())
     position = forms.IntegerField(required=False)
     face = forms.ChoiceField(
         required=False,
@@ -2145,6 +2148,7 @@ class DeviceBulkEditForm(
             "position",
             "face",
             "rack_group",
+            "vlan_group",
             "secrets_group",
             "device_redundancy_group",
             "device_redundancy_group_priority",
@@ -2172,6 +2176,7 @@ class DeviceFilterForm(
     field_order = [
         "q",
         "location",
+        "vlan_group",
         "rack_group",
         "rack",
         "status",
@@ -2202,6 +2207,7 @@ class DeviceFilterForm(
             "rack_group": "$rack_group",
         },
     )
+    vlan_group = DynamicModelMultipleChoiceField(queryset=VLANGroup.objects.all(), required=False, label="VLAN Group")
     manufacturer = DynamicModelMultipleChoiceField(
         queryset=Manufacturer.objects.all(),
         to_field_name="name",

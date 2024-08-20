@@ -157,6 +157,8 @@ class DeviceFactory(PrimaryModelFactory):
         lambda: Location.objects.filter(location_type__content_types=ContentType.objects.get_for_model(Device)),
         allow_null=False,
     )
+    vlan_group = random_instance(
+        lambda: VLANGroup.objects.filter(location=Location.objects.filter(location_type__content_types=ContentType.objects.get_for_model(Device))), allow_null=False)
     name = factory.LazyAttributeSequence(lambda o, n: f"{o.device_type.model}-{n + 1}")
 
     has_tenant = NautobotBoolIterator()

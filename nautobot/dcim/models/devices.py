@@ -529,6 +529,13 @@ class Device(PrimaryModel, ConfigContextModel):
     )
     # todoindex:
     face = models.CharField(max_length=50, blank=True, choices=DeviceFaceChoices, verbose_name="Rack face")
+    vlan_group = models.ForeignKey(
+        to="ipam.VLANGroup",
+        on_delete=models.RESTRICT,
+        related_name="devices",
+        null=True,
+        blank=True,
+    )
     primary_ip4 = models.ForeignKey(
         to="ipam.IPAddress",
         on_delete=models.SET_NULL,
@@ -620,6 +627,7 @@ class Device(PrimaryModel, ConfigContextModel):
         "tenant",
         "platform",
         "location",
+        "vlan_group",
         "rack",
         "status",
         "cluster",
@@ -666,11 +674,15 @@ class Device(PrimaryModel, ConfigContextModel):
 
         # Validate location
         if self.location is not None:
-            # TODO: after Location model replaced Site, which was not a hierarchical model, should we allow users to assign a Rack belongs to
-            # the parent Location or the child location of `self.location`?
+            valid_locations = [*self.location.ancestors(), self.location]
 
-            if self.rack is not None and self.rack.location != self.location:
-                raise ValidationError({"rack": f'Rack "{self.rack}" does not belong to location "{self.location}".'})
+            if self.rack is not None and self.rack.location not in valid_locations:
+                raise ValidationError({"rack": f'Rack "{self.rack}" does not belong to location "{self.location}" or any of its parents.'})
+
+            if self.vlan_group is not None and self.vlan_group.location not in valid_locations:
+                raise ValidationError(
+                    {"vlan_group": f'VLAN group "{self.vlan_group}" does not belong to location "{self.location}" or any of its parents.'}
+                )
 
             # self.cluster is validated somewhat later, see below
 
@@ -678,6 +690,7 @@ class Device(PrimaryModel, ConfigContextModel):
                 raise ValidationError(
                     {"location": f'Devices may not associate to locations of type "{self.location.location_type}".'}
                 )
+
 
         if self.rack is None:
             if self.face:

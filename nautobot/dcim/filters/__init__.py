@@ -799,6 +799,7 @@ class DeviceFilterSet(
                 "lookup_expr": "icontains",
                 "preprocessor": str.strip,
             },
+            "vlan_group__name": "icontains",
             "comments": "icontains",
         },
     )
@@ -821,6 +822,12 @@ class DeviceFilterSet(
     )
     platform = NaturalKeyOrPKMultipleChoiceFilter(
         queryset=Platform.objects.all(), to_field_name="name", label="Platform (name or ID)"
+    )
+    vlan_group = NaturalKeyOrPKMultipleChoiceFilter(
+        prefers_id=True,
+        queryset=VLANGroup.objects.all(),
+        to_field_name="name",
+        label="VLAN Group (name or ID)",
     )
     rack_group = TreeNodeMultipleChoiceFilter(
         prefers_id=True,

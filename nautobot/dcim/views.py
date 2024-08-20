@@ -1761,6 +1761,7 @@ class DeviceListView(generic.ObjectListView):
 class DeviceView(generic.ObjectView):
     queryset = Device.objects.select_related(
         "location",
+        "vlan_group",
         "rack__rack_group",
         "tenant__tenant_group",
         "role",
