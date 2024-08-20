@@ -68,7 +68,7 @@ from nautobot.extras.models import (
     Team,
 )
 from nautobot.ipam.constants import BGP_ASN_MAX, BGP_ASN_MIN
-from nautobot.ipam.models import IPAddress, IPAddressToInterface, VLAN, VLANLocationAssignment, VRF
+from nautobot.ipam.models import IPAddress, IPAddressToInterface, VLAN, VLANGroup, VLANLocationAssignment, VRF
 from nautobot.tenancy.forms import TenancyFilterForm, TenancyForm
 from nautobot.tenancy.models import Tenant, TenantGroup
 from nautobot.virtualization.models import Cluster, ClusterGroup, VirtualMachine
@@ -222,26 +222,37 @@ class InterfaceCommonForm(forms.Form):
         # Validate tagged VLANs; must be a global VLAN or in the same location as the
         # parent device/VM or any of that location's parent locations
         elif mode == InterfaceModeChoices.MODE_TAGGED:
-            location = self.cleaned_data[parent_field].location
-            if location:
-                location_ids = location.ancestors(include_self=True).values_list("id", flat=True)
-            else:
-                location_ids = []
-            invalid_vlans = [
-                str(v)
-                for v in tagged_vlans
-                if v.locations.without_tree_fields().exists()
-                and not VLANLocationAssignment.objects.filter(location__in=location_ids, vlan=v).exists()
-            ]
+            if parent_field == "device":
+                vlan_group = self.cleaned_data[parent_field].vlan_group
+                invalid_vlans = [
+                    str(v)
+                    for v in tagged_vlans
+                    if v.vlan_group is not None and v.vlan_group != vlan_group
+                ]
 
-            if invalid_vlans:
-                raise forms.ValidationError(
-                    {
-                        "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must have the same location as the "
-                        "interface's parent device, or is in one of the parents of the interface's parent device's location, "
-                        "or it must be global."
-                    }
-                )
+                if invalid_vlans:
+                    raise forms.ValidationError(
+                        {
+                            "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must belong to the same VLAN Group as "
+                            f"the interface's parent device"
+                        }
+                    )
+            else:
+                valid_location = self.cleaned_data[parent_field].location
+                invalid_vlans = [
+                    str(v)
+                    for v in tagged_vlans
+                    if v.locations.without_tree_fields().exists()
+                    and not VLANLocationAssignment.objects.filter(location=valid_location, vlan=v).exists()
+                ]
+
+                if invalid_vlans:
+                    raise forms.ValidationError(
+                        {
+                            "tagged_vlans": f"The tagged VLANs ({', '.join(invalid_vlans)}) must belong to the same location as "
+                            f"the interface's parent device/VM, or they must be global"
+                        }
+                    )
 
 
 class ComponentForm(BootstrapMixin, forms.Form):
@@ -1913,6 +1924,7 @@ class DeviceForm(LocatableModelFormMixin, NautobotModelForm, TenancyForm, LocalC
             "rack_group": "$rack_group",
         },
     )
+    vlan_group = DynamicModelChoiceField(queryset=VLANGroup.objects.all())
     device_redundancy_group = DynamicModelChoiceField(queryset=DeviceRedundancyGroup.objects.all(), required=False)
     controller_managed_device_group = DynamicModelChoiceField(
         queryset=ControllerManagedDeviceGroup.objects.all(), required=False
@@ -1983,6 +1995,7 @@ class DeviceForm(LocatableModelFormMixin, NautobotModelForm, TenancyForm, LocalC
             "software_image_files",
             "software_version",
             "location",
+            "vlan_group",
             "rack",
             "device_redundancy_group",
             "device_redundancy_group_priority",
@@ -2132,6 +2145,7 @@ class DeviceBulkEditForm(
         required=False,
         query_params={"location": "$location", "rack_group": "$rack_group"},
     )
+    vlan_group = DynamicModelChoiceField(required=False, queryset=VLANGroup.objects.all())
     position = forms.IntegerField(required=False)
     face = forms.ChoiceField(
         required=False,
@@ -2166,6 +2180,7 @@ class DeviceBulkEditForm(
             "position",
             "face",
             "rack_group",
+            "vlan_group",
             "cluster",
             "comments",
             "secrets_group",
@@ -2195,6 +2210,7 @@ class DeviceFilterForm(
     field_order = [
         "q",
         "location",
+        "vlan_group",
         "rack_group",
         "rack",
         "status",
@@ -2225,6 +2241,7 @@ class DeviceFilterForm(
             "rack_group": "$rack_group",
         },
     )
+    vlan_group = DynamicModelMultipleChoiceField(queryset=VLANGroup.objects.all(), required=False, label="VLAN Group")
     manufacturer = DynamicModelMultipleChoiceField(
         queryset=Manufacturer.objects.all(),
         to_field_name="name",
@@ -3290,6 +3307,17 @@ class InterfaceBulkEditForm(
 
         # Restrict parent/bridge/LAG interface assignment by device (or VC master)
         if device_count == 1:
+            # Limit VLAN choices by VLAN Group
+            if device.vlan_group:
+                # Remove query param added by 'locations' above
+                # APISelect widgets do not support removing query params, so we must do it manually
+                if self.fields["untagged_vlan"].widget.attrs.get("data-query-param-available_on_device"):
+                    del self.fields["untagged_vlan"].widget.attrs["data-query-param-available_on_device"]
+                if self.fields['tagged_vlans'].widget.attrs.get('data-query-param-locations'):
+                    del self.fields['tagged_vlans'].widget.attrs['data-query-param-locations']
+                self.fields["untagged_vlan"].widget.add_query_param("vlan_group", device.vlan_group.pk)
+                self.fields["tagged_vlans"].widget.add_query_param("vlan_group", device.vlan_group.pk)
+                
             self.fields["parent_interface"].widget.add_query_param("device_with_common_vc", device.pk)
             self.fields["bridge"].widget.add_query_param("device_with_common_vc", device.pk)
             self.fields["lag"].widget.add_query_param("device_with_common_vc", device.pk)

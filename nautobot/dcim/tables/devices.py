@@ -157,6 +157,7 @@ class DeviceTable(StatusTableMixin, RoleTableMixin, BaseTable):
     name = tables.TemplateColumn(order_by=("_name",), template_code=DEVICE_LINK)
     tenant = TenantColumn()
     location = tables.Column(linkify=True)
+    vlan_group = tables.Column(linkify=True, verbose_name="VLAN Group")
     rack = tables.Column(linkify=True)
     device_type = tables.LinkColumn(
         viewname="dcim:devicetype",
@@ -194,6 +195,7 @@ class DeviceTable(StatusTableMixin, RoleTableMixin, BaseTable):
             "serial",
             "asset_tag",
             "location",
+            "vlan_group",
             "rack",
             "position",
             "face",
@@ -218,6 +220,7 @@ class DeviceTable(StatusTableMixin, RoleTableMixin, BaseTable):
             "status",
             "tenant",
             "location",
+            "vlan_group",
             "rack",
             "role",
             "device_type",
@@ -235,6 +238,7 @@ class DeviceImportTable(StatusTableMixin, RoleTableMixin, BaseTable):
     name = tables.TemplateColumn(template_code=DEVICE_LINK)
     tenant = TenantColumn()
     location = tables.Column(linkify=True)
+    vlan_group = tables.Column(linkify=True, verbose_name="VLAN Group")
     rack = tables.Column(linkify=True)
     device_type = tables.Column(verbose_name="Type")
 
@@ -245,6 +249,7 @@ class DeviceImportTable(StatusTableMixin, RoleTableMixin, BaseTable):
             "status",
             "tenant",
             "location",
+            "vlan_group",
             "rack",
             "position",
             "role",

@@ -1752,6 +1752,7 @@ class DeviceView(generic.ObjectView):
         "device_redundancy_group",
         "device_type__device_family",
         "location",
+        "vlan_group",
         "platform",
         "primary_ip4",
         "primary_ip6",
