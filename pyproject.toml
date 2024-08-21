@@ -1,3 +1,6 @@
+[project]
+name = "nautobot"
+
 [tool.poetry]
 name = "nautobot"
 # Primary package version gets set here. This is used for publishing, and once
